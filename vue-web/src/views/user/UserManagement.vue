@@ -63,10 +63,9 @@ async function fetchList() {
       pageSize: queryParams.pageSize,
       userName: queryParams.userName || undefined,
     })
+
     list.value = result.list
     total.value = result.total
-  } catch {
-    // 错误已在拦截器中处理
   } finally {
     loading.value = false
   }
