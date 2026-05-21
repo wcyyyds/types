@@ -1,0 +1,10 @@
+onlyBuiltDependencies:
+  - '@parcel/watcher'
+  - '@nestjs/core'
+  - msgpackr-extract
+
+overrides:
+  'vue': 'beta'
+  '@vue/compiler-core': 'beta'
+  '@vue/compiler-dom': 'beta'
+  '@vue/compiler-sfc': 'beta'

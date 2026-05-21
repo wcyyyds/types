@@ -1,0 +1,9 @@
+allowBuilds:
+  '@nestjs/core': true
+  bcrypt: true
+  unrs-resolver: true
+
+onlyBuiltDependencies:
+  - '@nestjs/core'
+  - bcrypt
+  - unrs-resolver

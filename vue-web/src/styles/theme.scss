@@ -1,0 +1,128 @@
+/* ========================================
+   主题变量系统
+   ======================================== */
+
+/* 亮色模式 (默认) */
+:root {
+  /* 主色 */
+  --primary: #6366f1;
+  --primary-light: #818cf8;
+  --primary-dark: #4f46e5;
+  --primary-bg: rgba(99, 102, 241, 0.08);
+
+  /* 语义色 */
+  --success: #10b981;
+  --warning: #f59e0b;
+  --danger: #ef4444;
+  --info: #6b7280;
+
+  /* 背景色 */
+  --bg-color: #f0f2f5;
+  --bg-color-container: #ffffff;
+  --bg-color-elevated: #fafafa;
+  --bg-color-muted: #f5f5f5;
+
+  /* 文字色 */
+  --text-color: #1f2937;
+  --text-color-secondary: #6b7280;
+  --text-color-tertiary: #9ca3af;
+  --text-color-inverse: #ffffff;
+
+  /* 边框 */
+  --border-color: #e5e7eb;
+  --border-color-light: #f3f4f6;
+
+  /* 阴影 */
+  --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.05);
+  --shadow-md: 0 4px 16px rgba(0, 0, 0, 0.07);
+  --shadow-lg: 0 10px 40px rgba(0, 0, 0, 0.08);
+  --card-shadow: 0 1px 4px rgba(0, 0, 0, 0.04), 0 4px 16px rgba(0, 0, 0, 0.06);
+
+  /* 侧边栏 */
+  --sidebar-bg: #ffffff;
+  --sidebar-text: #4b5563;
+  --sidebar-active-text: var(--primary);
+  --sidebar-hover-bg: rgba(99, 102, 241, 0.06);
+  --sidebar-active-bg: rgba(99, 102, 241, 0.1);
+  --sidebar-width: 240px;
+  --sidebar-collapsed-width: 64px;
+
+  /* 顶栏 */
+  --header-bg: rgba(255, 255, 255, 0.85);
+  --header-height: 60px;
+
+  /* Logo */
+  --logo-bg: transparent;
+  --logo-text: var(--primary);
+
+  /* 圆角 */
+  --radius-sm: 6px;
+  --radius-md: 10px;
+  --radius-lg: 14px;
+  --radius-xl: 20px;
+
+  /* 动画 */
+  --transition-fast: 0.15s ease;
+  --transition-base: 0.25s ease;
+  --transition-slow: 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* 暗色模式 */
+html.dark {
+  /* 主色 */
+  --primary: #818cf8;
+  --primary-light: #a5b4fc;
+  --primary-dark: #6366f1;
+  --primary-bg: rgba(129, 140, 248, 0.1);
+
+  /* 语义色 */
+  --success: #34d399;
+  --warning: #fbbf24;
+  --danger: #f87171;
+  --info: #9ca3af;
+
+  /* 背景色 */
+  --bg-color: #0f0f13;
+  --bg-color-container: #1a1a23;
+  --bg-color-elevated: #22222e;
+  --bg-color-muted: #2a2a36;
+
+  /* 文字色 */
+  --text-color: #e5e7eb;
+  --text-color-secondary: #9ca3af;
+  --text-color-tertiary: #6b7280;
+  --text-color-inverse: #ffffff;
+
+  /* 边框 */
+  --border-color: #2d2d3a;
+  --border-color-light: #252530;
+
+  /* 阴影 */
+  --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.2);
+  --shadow-md: 0 4px 16px rgba(0, 0, 0, 0.3);
+  --shadow-lg: 0 10px 40px rgba(0, 0, 0, 0.4);
+  --card-shadow: 0 1px 4px rgba(0, 0, 0, 0.2), 0 4px 16px rgba(0, 0, 0, 0.25);
+
+  /* 侧边栏 */
+  --sidebar-bg: #16161f;
+  --sidebar-text: #9ca3af;
+  --sidebar-active-text: var(--primary);
+  --sidebar-hover-bg: rgba(129, 140, 248, 0.06);
+  --sidebar-active-bg: rgba(129, 140, 248, 0.12);
+  --sidebar-width: 240px;
+  --sidebar-collapsed-width: 64px;
+
+  /* 顶栏 */
+  --header-bg: rgba(26, 26, 35, 0.85);
+  --header-height: 60px;
+
+  /* Logo */
+  --logo-bg: transparent;
+  --logo-text: var(--primary);
+}
+
+/* 全局过渡 */
+* {
+  transition-property: color, background-color, border-color, box-shadow;
+  transition-duration: var(--transition-base);
+}
