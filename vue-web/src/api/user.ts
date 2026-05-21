@@ -1,11 +1,12 @@
-import http from "./index";
-import type { UserInfo, UserListResult, CreateUserParams, UpdateUserParams, UserListParams, ChangePasswordParams } from "@/types";
+import http, { httpWithBody } from "./index";
+import type { ApiResponse, UserInfo, CreateUserParams, UpdateUserParams, UserListParams, ChangePasswordParams,  } from "@/types";
 
 /**
  * 获取用户列表（分页）
+ * 使用 httpWithBody 以获取完整 body（含 page / total 等分页信息）
  */
-export function getUserListApi(params: UserListParams): Promise<UserListResult> {
-  return http.get("/user/list", { params });
+export function getUserListApi(params: UserListParams): Promise<ApiResponse<UserInfo[]>> {
+  return httpWithBody.get("/user/list", { params });
 }
 
 /**

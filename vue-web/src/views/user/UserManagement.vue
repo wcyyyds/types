@@ -2,7 +2,7 @@
 import { ref, onMounted, reactive } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { Plus, Edit, Delete, Search, Refresh } from '@element-plus/icons-vue'
-import type { UserInfo, UserListResult, CreateUserParams, UpdateUserParams } from '@/types'
+import type { UserInfo, CreateUserParams, UpdateUserParams } from '@/types'
 import { getUserListApi, createUserApi, updateUserApi, deleteUserApi } from '@/api/user'
 
 // ============================================================
@@ -58,14 +58,14 @@ const formRules = {
 async function fetchList() {
   loading.value = true
   try {
-    const result: UserListResult = await getUserListApi({
+    const res = await getUserListApi({
       page: queryParams.page,
       pageSize: queryParams.pageSize,
       userName: queryParams.userName || undefined,
     })
 
-    list.value = result.list
-    total.value = result.total
+    list.value = res.data ||[]
+    total.value = res.total ?? 0
   } finally {
     loading.value = false
   }

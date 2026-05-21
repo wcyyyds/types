@@ -1,15 +1,12 @@
 // 从共享类型包中重新导出，保持前端 @/types 引用不变
 export type { ApiResponse } from '@shared/types'
-export type { LoginParams, LoginResult, LogoutParams, ForceLogoutParams } from '@shared/types/auth'
+export type { LoginParams, LogoutParams, ForceLogoutParams } from '@shared/types/auth'
 export type {
   UserInfo,
   CreateUserParams,
   UpdateUserParams,
   UserListParams,
-  UserListResult,
   ChangePasswordParams,
 } from '@shared/types/user'
-export type { FileResponse, UploadFileParams, UnifiedUploadResult } from '@shared/types/upload'
-
 /** 主题模式 */
 export type ThemeMode = 'light' | 'dark'
