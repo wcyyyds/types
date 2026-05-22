@@ -66,7 +66,7 @@ async function handleChangePassword() {
   pwdLoading.value = true
   try {
     await changePasswordApi({
-      userId: userStore.userInfo!.id,
+      userId: userStore.userInfo!.id as number,
       oldPassword: pwdForm.oldPassword,
       newPassword: pwdForm.newPassword,
     })
@@ -364,7 +364,7 @@ function handleDropdownCommand(command: string) {
 /* ===== 内容区域 ===== */
 .content {
   flex: 1;
-  padding: 10px;
+  padding: 24px;
   overflow-y: auto;
   background: var(--bg-color);
 }

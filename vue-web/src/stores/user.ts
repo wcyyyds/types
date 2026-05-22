@@ -1,6 +1,6 @@
 import { ref } from "vue";
 import { defineStore } from "pinia";
-import type { UserInfo, LoginParams, LoginResult, ForceLogoutParams } from "@/types";
+import type { UserInfo, LoginParams, } from "@/types";
 import { tokenManager, storage } from "@/utils";
 import { loginApi, logoutApi, forceLogoutApi } from "@/api/login";
 
@@ -16,7 +16,7 @@ export const useUserStore = defineStore("user", () => {
   /** 登录 */
   async function login(params: LoginParams) {
     // 后端返回扁平结构 LoginResult，包含 accessToken 和用户字段
-    const result: LoginResult = await loginApi(params);
+    const result: UserInfo = await loginApi(params);
 
     const newToken = result.accessToken;
     const user: UserInfo = {
@@ -27,11 +27,11 @@ export const useUserStore = defineStore("user", () => {
       isActive: result.isActive,
     };
 
-    token.value = newToken;
+    token.value = newToken as string;
     userInfo.value = user;
     isLoggedIn.value = true;
 
-    tokenManager.set(newToken);
+    tokenManager.set(newToken as string);
     storage.set(USER_INFO_KEY, user);
 
     return { token: newToken, user };

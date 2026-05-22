@@ -1,12 +1,12 @@
 import http from "./index";
-import type { LoginParams, LoginResult, LogoutParams, ForceLogoutParams } from "@/types";
+import type { LoginParams,LogoutParams, ForceLogoutParams, UserInfo } from "@/types";
 
 /**
  * 登录
  * @param params 用户名 + 密码
  * @returns 用户信息 + accessToken
  */
-export function loginApi(params: LoginParams): Promise<LoginResult> {
+export function loginApi(params: LoginParams): Promise<UserInfo> {
   return http.post("/auth/login", params);
 }
 
