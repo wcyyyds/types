@@ -7,6 +7,7 @@ import { ElMessage } from 'element-plus'
 import {
   DataAnalysis,
   User,
+  Avatar,
   ArrowDown,
   SwitchButton,
   Key,
@@ -125,6 +126,10 @@ function handleDropdownCommand(command: string) {
         <el-menu-item index="/user">
           <el-icon><User /></el-icon>
           <template #title>人员管理</template>
+        </el-menu-item>
+        <el-menu-item index="/role">
+          <el-icon><Avatar /></el-icon>
+          <template #title>角色管理</template>
         </el-menu-item>
       </el-menu>
     </aside>

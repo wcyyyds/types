@@ -108,7 +108,7 @@ export class UserService {
 
     // 过滤敏感字段，格式化日期，翻译用户 ID
     const rawList = list.map(({ passWord: _pw, ...rest }) => rest);
-    const userMap = await buildUserMap(rawList, this);
+    const userMap = await buildUserMap(rawList, (id) => this.getUserNameById(id));
     const safeList = formatList(rawList, userMap);
 
     return { data: safeList as any, total, page, pageSize };
@@ -141,7 +141,7 @@ export class UserService {
     const list = await this.userRepository.find(query);
 
     const rawList = list.map(({ passWord: _pw, ...rest }) => rest);
-    const userMap = await buildUserMap(rawList, this);
+    const userMap = await buildUserMap(rawList, (id) => this.getUserNameById(id));
     return formatList(rawList, userMap);
   }
 

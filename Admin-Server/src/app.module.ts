@@ -4,6 +4,7 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 import { RedisModule } from './redis/redis.module';
 import { AuthModule } from './auth/auth.module';
 import { UserModule } from './user/user.module';
+import { RoleModule } from './role/role.module';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
 
@@ -33,6 +34,7 @@ import { AppService } from './app.service';
 
     // 业务模块
     UserModule,
+    RoleModule,
     AuthModule,
   ],
   controllers: [AppController],

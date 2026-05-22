@@ -1,5 +1,4 @@
 import * as dayjs from 'dayjs';
-import type { UserService } from '../../user/user.service';
 
 // ============================================================
 // 日期格式化
@@ -54,10 +53,11 @@ export function translateUserFields<T extends Record<string, any>>(
 /**
  * 构建用户 ID → 用户名的 Map
  * 从已查询到的列表数据中提取所有用户 ID，批量查询并返回 Map
+ * @param getUserNameFn 根据用户 ID 获取用户名的函数
  */
 export async function buildUserMap(
   list: Array<Record<string, any>>,
-  userService: UserService,
+  getUserNameFn: (id: number) => Promise<string>,
 ): Promise<Map<number, string>> {
   const ids = new Set<number>();
   for (const item of list) {
@@ -74,7 +74,7 @@ export async function buildUserMap(
   const userIds = Array.from(ids);
   const userMap = await Promise.all(
     userIds.map(async (id) => {
-      const name = await userService.getUserNameById(id);
+      const name = await getUserNameFn(id);
       return { id, name };
     }),
   );

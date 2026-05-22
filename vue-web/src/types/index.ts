@@ -8,5 +8,11 @@ export type {
   UserListParams,
   ChangePasswordParams,
 } from '@shared/types/user'
+export type {
+  RoleInfo,
+  CreateRoleParams,
+  UpdateRoleParams,
+  RoleListParams,
+} from '@shared/types/role'
 /** 主题模式 */
 export type ThemeMode = 'light' | 'dark'
