@@ -1,0 +1,96 @@
+/* ========================================
+   管理列表通用布局
+   适用于搜索栏 + 表格卡片 + 分页的列表页面
+   使用方式: <div class="management-list"> ... </div>
+   ======================================== */
+
+.management-list {
+  max-width: 100%;
+  margin: 0 auto;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
+/* ===== 页面标题 ===== */
+.management-list .page-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 24px;
+}
+
+.management-list .page-title {
+  font-size: 22px;
+  font-weight: 700;
+  color: var(--text-color);
+  margin: 0;
+}
+
+.management-list .page-desc {
+  font-size: 13px;
+  color: var(--text-color-tertiary);
+  margin: 4px 0 0 0;
+}
+
+/* ===== 搜索栏 ===== */
+.management-list .search-card {
+  margin-bottom: 10px;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border-color);
+  background: var(--bg-color-container);
+}
+
+.management-list .search-form {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px;
+}
+
+/* ===== 表格卡片 ===== */
+.management-list .table-card {
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border-color);
+  background: var(--bg-color-container);
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.management-list .table-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.management-list .table-title {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--text-color);
+}
+
+/* ===== Element Plus 内部元素覆盖 ===== */
+.management-list .table-card .el-card__body {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.management-list .table-card .el-card__header {
+  padding: 14px 20px;
+  border-bottom: 1px solid var(--border-color-light);
+  flex-shrink: 0;
+}
+
+.management-list .table-card .el-table {
+  flex: 1;
+  min-height: 0;
+}
+
+.management-list .table-card .el-table__body-wrapper {
+  flex: 1;
+  overflow-y: auto;
+}
