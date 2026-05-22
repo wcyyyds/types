@@ -5,7 +5,7 @@ import {
   BadRequestException,
 } from "@nestjs/common";
 import { InjectRepository } from "@nestjs/typeorm";
-import { Repository, Like } from "typeorm";
+import { Repository, Like, Between } from "typeorm";
 import { User } from "./entities/user.entity";
 import * as bcrypt from "bcrypt";
 import type {
@@ -16,21 +16,49 @@ import type {
   ChangePasswordParams,
 } from "@shared/types/user";
 import { ApiResponsePage } from "@shared/types";
+import { formatList, buildUserMap } from "../common/utils/format.util";
 
 @Injectable()
 export class UserService {
+  /** 用户 ID → 用户名 内存缓存，避免重复查询数据库 */
+  private userNameCache = new Map<number, string>();
+
   constructor(
     @InjectRepository(User)
     private userRepository: Repository<User>,
   ) {}
 
   /**
-   * 根据ID查找用户
+   * 根据ID查找用户（优先走缓存）
    */
   async findByUserId(id: number): Promise<User | null> {
     return this.userRepository.findOne({
       where: { id },
     });
+  }
+
+  /**
+   * 根据用户ID获取用户名（带缓存）
+   */
+  async getUserNameById(userId: number): Promise<string> {
+    // 查缓存
+    if (this.userNameCache.has(userId)) {
+      return this.userNameCache.get(userId)!;
+    }
+    // 查数据库
+    try {
+      const user = await this.findByUserId(userId);
+      const name = user ? user.userName : "";
+      if (name) this.userNameCache.set(userId, name);
+      return name;
+    } catch {
+      return "";
+    }
+  }
+
+  /** 清空用户名缓存（用户信息变更时调用） */
+  clearUserNameCache() {
+    this.userNameCache.clear();
   }
 
   /**
@@ -53,28 +81,23 @@ export class UserService {
   }
 
   /**
-   * 根据用户ID获取用户名
-   */
-  async getUserNameById(userId: number): Promise<string> {
-    try {
-      const user = await this.findByUserId(userId);
-      return user ? user.userName : "";
-    } catch (error) {
-      return "";
-    }
-  }
-
-  /**
    * 分页查询用户列表
    */
   async findUserList(
     params: UserListParams,
   ): Promise<ApiResponsePage<UserInfo[]>> {
-    const { page = 1, pageSize = 20, userName, isActive } = params;
+    const { page = 1, pageSize = 20, userName, isActive, createTimeStart, createTimeEnd } = params;
 
     const where: any = {};
     if (userName) where.userName = Like(`%${userName}%`);
     if (isActive !== undefined) where.isActive = isActive;
+    if (createTimeStart && createTimeEnd) {
+      where.createTime = Between(new Date(createTimeStart), new Date(createTimeEnd));
+    } else if (createTimeStart) {
+      where.createTime = Between(new Date(createTimeStart), new Date('9999-12-31'));
+    } else if (createTimeEnd) {
+      where.createTime = Between(new Date('1970-01-01'), new Date(createTimeEnd));
+    }
 
     const [list, total] = await this.userRepository.findAndCount({
       where,
@@ -83,24 +106,43 @@ export class UserService {
       order: { createTime: "DESC" },
     });
 
-    // 过滤掉敏感字段，并将 Date 类型转为 ISO 字符串以匹配 shared 类型
-    const safeList = list.map(({ passWord: _pw, ...rest }) => ({
-      ...rest,
-      createTime:
-        rest.createTime instanceof Date
-          ? rest.createTime.toISOString()
-          : rest.createTime,
-      deleteTime:
-        rest.deleteTime instanceof Date
-          ? rest.deleteTime.toISOString()
-          : rest.deleteTime,
-      lastModified:
-        rest.lastModified instanceof Date
-          ? rest.lastModified.toISOString()
-          : rest.lastModified,
-    }));
+    // 过滤敏感字段，格式化日期，翻译用户 ID
+    const rawList = list.map(({ passWord: _pw, ...rest }) => rest);
+    const userMap = await buildUserMap(rawList, this);
+    const safeList = formatList(rawList, userMap);
 
-    return { data: safeList, total, page, pageSize };
+    return { data: safeList as any, total, page, pageSize };
+  }
+
+  /**
+   * 导出用户列表（支持分页筛选）
+   */
+  async findAllForExport(
+    params: Partial<UserListParams>,
+  ): Promise<any[]> {
+    const { page, pageSize, userName, isActive, createTimeStart, createTimeEnd } = params;
+
+    const where: any = {};
+    if (userName) where.userName = Like(`%${userName}%`);
+    if (isActive !== undefined) where.isActive = isActive;
+    if (createTimeStart && createTimeEnd) {
+      where.createTime = Between(new Date(createTimeStart), new Date(createTimeEnd));
+    } else if (createTimeStart) {
+      where.createTime = Between(new Date(createTimeStart), new Date('9999-12-31'));
+    } else if (createTimeEnd) {
+      where.createTime = Between(new Date('1970-01-01'), new Date(createTimeEnd));
+    }
+
+    const query: any = { where, order: { createTime: "DESC" } };
+    if (page && pageSize) {
+      query.skip = (page - 1) * pageSize;
+      query.take = pageSize;
+    }
+    const list = await this.userRepository.find(query);
+
+    const rawList = list.map(({ passWord: _pw, ...rest }) => rest);
+    const userMap = await buildUserMap(rawList, this);
+    return formatList(rawList, userMap);
   }
 
   /**
@@ -128,6 +170,7 @@ export class UserService {
 
     const saved = await this.userRepository.save(user);
     const { passWord: _, ...result } = saved;
+    this.clearUserNameCache();
     return result;
   }
 
@@ -158,6 +201,7 @@ export class UserService {
 
     const saved = await this.userRepository.save(user);
     const { passWord: _, ...result } = saved;
+    this.clearUserNameCache();
     return result;
   }
 
@@ -174,6 +218,7 @@ export class UserService {
     user.deleteUser = operatorId;
     user.deleteTime = new Date();
     await this.userRepository.save(user);
+    this.clearUserNameCache();
   }
 
   /**
@@ -194,5 +239,6 @@ export class UserService {
     user.passWord = await bcrypt.hash(newPassword, 10);
     user.lastModifier = userId;
     await this.userRepository.save(user);
+    this.clearUserNameCache();
   }
 }

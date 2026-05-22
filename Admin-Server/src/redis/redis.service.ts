@@ -1,6 +1,6 @@
-import { Injectable, OnModuleDestroy, OnModuleInit } from '@nestjs/common';
-import { ConfigService } from '@nestjs/config';
-import Redis from 'ioredis';
+import { Injectable, OnModuleDestroy, OnModuleInit } from "@nestjs/common";
+import { ConfigService } from "@nestjs/config";
+import Redis from "ioredis";
 
 @Injectable()
 export class RedisService implements OnModuleInit, OnModuleDestroy {
@@ -10,33 +10,37 @@ export class RedisService implements OnModuleInit, OnModuleDestroy {
 
   async onModuleInit() {
     this.client = new Redis({
-      host: this.configService.get<string>('REDIS_HOST', 'localhost'),
-      port: this.configService.get<number>('REDIS_PORT', 6379),
-      password: this.configService.get<string>('REDIS_PASSWORD', '') || undefined,
-      db: this.configService.get<number>('REDIS_DB', 0),
+      host: this.configService.get<string>("REDIS_HOST", "localhost"),
+      port: this.configService.get<number>("REDIS_PORT", 6379),
+      password:
+        this.configService.get<string>("REDIS_PASSWORD", "") || undefined,
+      db: this.configService.get<number>("REDIS_DB", 0),
       // 远程 Redis 必须开启 keepAlive，防止空闲断开
-      keepAlive: 10000,       // 每 10 秒发送一次 TCP 心跳
+      keepAlive: 5000, // 每 5 秒发送一次 TCP 心跳
       retryStrategy: (times) => {
         // 无限重试，指数退避，最大 30 秒间隔
         return Math.min(times * 1000, 30000);
       },
       lazyConnect: true,
-      connectTimeout: 10000,  // 连接超时 10 秒（远程服务器延迟较高）
+      connectTimeout: 10000, // 连接超时 10 秒（远程服务器延迟较高）
       maxRetriesPerRequest: 3, // 单个请求最多重试 3 次
     });
 
-    this.client.on('error', (err) => {
-      console.error('Redis 连接错误:', err.message);
+    this.client.on("error", (err) => {
+      console.error("Redis 连接错误:", err.message);
     });
 
-    this.client.on('connect', () => {
-      console.log('✅ Redis 已连接');
+    this.client.on("connect", () => {
+      console.log("✅ Redis 已连接");
     });
 
     try {
       await this.client.connect();
     } catch (err) {
-      console.warn('⚠️  Redis 连接失败，将使用内存模式:', (err as Error).message);
+      console.warn(
+        "⚠️  Redis 连接失败，将使用内存模式:",
+        (err as Error).message,
+      );
     }
   }
 
@@ -54,7 +58,7 @@ export class RedisService implements OnModuleInit, OnModuleDestroy {
    */
   async set(key: string, value: string, ttl?: number): Promise<void> {
     if (ttl) {
-      await this.client.set(key, value, 'EX', ttl);
+      await this.client.set(key, value, "EX", ttl);
     } else {
       await this.client.set(key, value);
     }
@@ -103,7 +107,10 @@ export class RedisService implements OnModuleInit, OnModuleDestroy {
   /**
    * 设置哈希表字段
    */
-  async hset(key: string, fields: Record<string, string | number>): Promise<void> {
+  async hset(
+    key: string,
+    fields: Record<string, string | number>,
+  ): Promise<void> {
     await this.client.hset(key, fields);
   }
 
@@ -128,7 +135,7 @@ export class RedisService implements OnModuleInit, OnModuleDestroy {
    * @returns [nextCursor, keys]
    */
   async scan(cursor: string, pattern: string): Promise<[string, string[]]> {
-    return this.client.scan(cursor, 'MATCH', pattern, 'COUNT', 100);
+    return this.client.scan(cursor, "MATCH", pattern, "COUNT", 100);
   }
 
   /**

@@ -1,70 +1,35 @@
 <script setup lang="ts">
 import { ref, onMounted, reactive } from 'vue'
+import AppPagination, { type PageEmitPropsTypes } from '@/components/AppPagination.vue'
+import UserFormDialog from './UserFormDialog.vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import { Plus, Edit, Delete, Search, Refresh } from '@element-plus/icons-vue'
-import type { UserInfo, CreateUserParams, UpdateUserParams } from '@/types'
-import { getUserListApi, createUserApi, updateUserApi, deleteUserApi } from '@/api/user'
+import { Plus, Edit, Delete, Search, Refresh, Download } from '@element-plus/icons-vue'
+import type { UserInfo, UserListParams } from '@/types'
+import { getUserListApi, deleteUserApi, exportUserApi } from '@/api/user'
 
-// ============================================================
-// 状态
-// ============================================================
+onMounted(() => {
+  fetchList()
+})
 
 const loading = ref(false)
 const list = ref<UserInfo[]>([])
 const total = ref(0)
 
-const queryParams = reactive({
+const queryParams: UserListParams | any = reactive({
   page: 1,
   pageSize: 20,
   userName: '',
+  isActive: undefined as boolean | undefined,
+  createTimeStart: '',
+  createTimeEnd: '',
 })
-
-const dialogVisible = ref(false)
-const dialogTitle = ref('')
-const isEdit = ref(false)
-
-const formRef = ref()
-const formData = reactive<{
-  id?: number
-  userName: string
-  passWord: string
-  email: string
-  phone: string
-  isActive: boolean
-}>({
-  userName: '',
-  passWord: '',
-  email: '',
-  phone: '',
-  isActive: true,
-})
-
-const formRules = {
-  userName: [
-    { required: true, message: '请输入用户名', trigger: 'blur' },
-    { min: 2, max: 50, message: '用户名长度 2-50 个字符', trigger: 'blur' },
-  ],
-  passWord: [
-    { required: true, message: '请输入密码', trigger: 'blur' },
-    { min: 6, max: 50, message: '密码长度 6-50 个字符', trigger: 'blur' },
-  ],
-  email: [{ type: 'email' as const, message: '请输入正确的邮箱地址', trigger: 'blur' }],
-}
-
-// ============================================================
-// 方法
-// ============================================================
 
 async function fetchList() {
   loading.value = true
+  list.value = []
   try {
-    const res = await getUserListApi({
-      page: queryParams.page,
-      pageSize: queryParams.pageSize,
-      userName: queryParams.userName || undefined,
-    })
-
-    list.value = res.data ||[]
+    const res = await getUserListApi(queryParams)
+    list.value = res.data || []
     total.value = res.total ?? 0
   } finally {
     loading.value = false
@@ -78,76 +43,22 @@ function handleSearch() {
 
 function handleReset() {
   queryParams.userName = ''
+  queryParams.isActive = undefined
+  queryParams.createTimeStart = ''
+  queryParams.createTimeEnd = ''
   queryParams.page = 1
   fetchList()
 }
 
-function handlePageChange(page: number) {
+function handlePaginationChange({ page, pageSize }: PageEmitPropsTypes) {
   queryParams.page = page
+  queryParams.pageSize = pageSize
   fetchList()
 }
 
-function handleSizeChange(size: number) {
-  queryParams.pageSize = size
-  queryParams.page = 1
+
+function handleDialogSuccess() {
   fetchList()
-}
-
-function openCreateDialog() {
-  isEdit.value = false
-  dialogTitle.value = '新增用户'
-  formData.id = undefined
-  formData.userName = ''
-  formData.passWord = ''
-  formData.email = ''
-  formData.phone = ''
-  formData.isActive = true
-  dialogVisible.value = true
-}
-
-function openEditDialog(row: UserInfo) {
-  isEdit.value = true
-  dialogTitle.value = '编辑用户'
-  formData.id = row.id
-  formData.userName = row.userName
-  formData.passWord = ''
-  formData.email = row.email || ''
-  formData.phone = row.phone || ''
-  formData.isActive = row.isActive
-  dialogVisible.value = true
-}
-
-async function handleSubmit() {
-  if (!formRef.value) return
-  await formRef.value.validate()
-
-  try {
-    if (isEdit.value) {
-      const params: UpdateUserParams = {
-        id: formData.id!,
-        userName: formData.userName || undefined,
-        email: formData.email || undefined,
-        phone: formData.phone || undefined,
-        isActive: formData.isActive,
-      }
-      await updateUserApi(params)
-      ElMessage.success('更新成功')
-    } else {
-      const params: CreateUserParams = {
-        userName: formData.userName,
-        passWord: formData.passWord,
-        email: formData.email || undefined,
-        phone: formData.phone || undefined,
-        isActive: formData.isActive,
-      }
-      await createUserApi(params)
-      ElMessage.success('新增成功')
-    }
-    dialogVisible.value = false
-    fetchList()
-  } catch {
-    // 错误已在拦截器中处理
-  }
 }
 
 async function handleDelete(row: UserInfo) {
@@ -157,46 +68,70 @@ async function handleDelete(row: UserInfo) {
       cancelButtonText: '取消',
       type: 'warning',
     })
-    await deleteUserApi(row.id)
+    await deleteUserApi(row.id as number)
     ElMessage.success('删除成功')
     fetchList()
   } catch {
-    // 取消或失败都不处理
   }
 }
 
-// ============================================================
-// 初始化
-// ============================================================
+const dialogRef = ref<InstanceType<typeof UserFormDialog>>()
+const dialogVisible = ref(false)
 
-onMounted(() => {
-  fetchList()
-})
+function openCreateDialog() {
+  dialogRef.value?.openForCreate()
+  dialogVisible.value = true
+}
+
+function openEditDialog(row: UserInfo) {
+  dialogRef.value?.openForEdit(row)
+  dialogVisible.value = true
+}
+
+async function handleExport() {
+  const blob = await exportUserApi(queryParams)
+  const url = URL.createObjectURL(blob)
+  const a = document.createElement('a')
+  a.href = url
+  a.download = `用户列表_${new Date().toISOString().slice(0, 10)}.xlsx`
+  a.click()
+  URL.revokeObjectURL(url)
+}
 </script>
 
 <template>
-  <div class="user-management">
-    <!-- 页面标题 -->
-    <div class="page-header">
-      <div class="header-info">
-        <h2 class="page-title">人员管理</h2>
-        <p class="page-desc">管理系统中的所有用户账号</p>
-      </div>
-      <el-button type="primary" :icon="Plus" @click="openCreateDialog">
-        新增用户
-      </el-button>
-    </div>
-
+  <div class="management-list">
     <!-- 搜索栏 -->
     <el-card class="search-card" shadow="never">
-      <el-form :model="queryParams" layout="inline" class="search-form">
+      <el-form :inline="true" :model="queryParams" layout="inline" class="search-form">
+        <el-form-item label="状态">
+          <el-select v-model="queryParams.isActive" placeholder="全部" clearable style="width: 120px"
+            @change="handleSearch">
+            <el-option :value="true" label="启用" />
+            <el-option :value="false" label="禁用" />
+          </el-select>
+        </el-form-item>
         <el-form-item label="用户名">
-          <el-input
-            v-model="queryParams.userName"
-            placeholder="请输入用户名搜索"
-            clearable
-            style="width: 220px"
-            @keyup.enter="handleSearch"
+          <el-input v-model="queryParams.userName" placeholder="请输入用户名搜索" clearable style="width: 220px"
+            @keyup.enter="handleSearch" />
+        </el-form-item>
+        <el-form-item label="创建时间">
+          <el-date-picker
+            v-model="queryParams.createTimeStart"
+            type="datetime"
+            placeholder="开始日期"
+            value-format="YYYY-MM-DD HH:mm:ss"
+            style="width: 180px"
+            @change="handleSearch"
+          />
+          <span style="margin: 0 6px; color: var(--text-color-tertiary);">至</span>
+          <el-date-picker
+            v-model="queryParams.createTimeEnd"
+            type="datetime"
+            placeholder="结束日期"
+            value-format="YYYY-MM-DD HH:mm:ss"
+            style="width: 180px"
+            @change="handleSearch"
           />
         </el-form-item>
         <el-form-item>
@@ -211,21 +146,20 @@ onMounted(() => {
       <template #header>
         <div class="table-header">
           <span class="table-title">用户列表</span>
-          <el-tag type="info" effect="plain" size="small">
-            共 {{ total }} 条
-          </el-tag>
+          <div class="table-actions">
+            <el-button :icon="Download" @click="handleExport">导出</el-button>
+            <el-button type="primary" :icon="Plus" @click="openCreateDialog">新增用户</el-button>
+          </div>
         </div>
       </template>
-
-      <el-table
-        :data="list"
-        v-loading="loading"
-        stripe
-        style="width: 100%"
-        :header-cell-style="{ background: 'var(--bg-color-muted)', color: 'var(--text-color-secondary)', fontWeight: 600 }"
-      >
-        <el-table-column prop="id" label="ID" width="70" align="center" />
-        <el-table-column prop="userName" label="用户名" min-width="140">
+      <el-table :data="list" v-loading="loading" stripe style="width: 100%" height="100%"
+        :header-cell-style="{ background: 'var(--bg-color-muted)', color: 'var(--text-color-secondary)', fontWeight: 600 }">
+        <el-table-column label="编号" width="70" align="center" fixed="left">
+          <template #default="{ $index }">
+            {{ (queryParams.page - 1) * queryParams.pageSize + $index + 1 }}
+          </template>
+        </el-table-column>
+        <el-table-column prop="userName" label="用户名" min-width="140" fixed="left">
           <template #default="{ row }">
             <div class="user-cell">
               <el-avatar :size="28" icon="UserFilled" class="user-avatar" />
@@ -247,38 +181,32 @@ onMounted(() => {
         </el-table-column>
         <el-table-column prop="isActive" label="状态" width="100" align="center">
           <template #default="{ row }">
-            <el-tag
-              :type="row.isActive ? 'success' : 'danger'"
-              effect="light"
-              size="small"
-              class="status-tag"
-            >
+            <el-tag :type="row.isActive ? 'success' : 'danger'" effect="light" size="small" class="status-tag">
               <span class="status-dot" :class="{ active: row.isActive }" />
               {{ row.isActive ? '启用' : '禁用' }}
             </el-tag>
           </template>
         </el-table-column>
+        <el-table-column prop="createUserName" label="创建人" width="120" align="center">
+          <template #default="{ row }">
+            <span>{{ row.createUserName || '—' }}</span>
+          </template>
+        </el-table-column>
+        <el-table-column prop="createTime" label="创建时间" width="170" align="center" />
+        <el-table-column prop="lastModifierName" label="最后修改人" width="120" align="center">
+          <template #default="{ row }">
+            <span>{{ row.lastModifierName || '—' }}</span>
+          </template>
+        </el-table-column>
+        <el-table-column prop="lastModified" label="最后修改时间" width="170" align="center" />
         <el-table-column label="操作" width="200" align="center" fixed="right">
           <template #default="{ row }">
-            <el-button
-              type="primary"
-              link
-              size="small"
-              :icon="Edit"
-              @click="openEditDialog(row)"
-              class="action-btn"
-            >
+            <el-button type="primary" link size="small" :icon="Edit" @click="openEditDialog(row)" class="action-btn">
               编辑
             </el-button>
             <el-divider direction="vertical" />
-            <el-button
-              type="danger"
-              link
-              size="small"
-              :icon="Delete"
-              @click="handleDelete(row)"
-              class="action-btn danger"
-            >
+            <el-button type="danger" link size="small" :icon="Delete" @click="handleDelete(row)"
+              class="action-btn danger">
               删除
             </el-button>
           </template>
@@ -286,134 +214,21 @@ onMounted(() => {
       </el-table>
 
       <!-- 分页 -->
-      <div class="pagination-wrap" v-if="total > 0">
-        <el-pagination
-          v-model:current-page="queryParams.page"
-          v-model:page-size="queryParams.pageSize"
-          :page-sizes="[10, 20, 50, 100]"
-          :total="total"
-          layout="total, sizes, prev, pager, next, jumper"
-          background
-          @current-change="handlePageChange"
-          @size-change="handleSizeChange"
-        />
-      </div>
+      <AppPagination :total="total" :page="queryParams.page" :page-size="queryParams.pageSize"
+        @change="handlePaginationChange" />
     </el-card>
 
     <!-- 新增/编辑弹窗 -->
-    <el-dialog
-      v-model="dialogVisible"
-      :title="dialogTitle"
-      width="520px"
-      :close-on-click-modal="false"
-      class="user-dialog"
-    >
-      <el-form
-        ref="formRef"
-        :model="formData"
-        :rules="formRules"
-        label-width="80px"
-        class="dialog-form"
-      >
-        <el-form-item label="用户名" prop="userName">
-          <el-input v-model="formData.userName" placeholder="请输入用户名" />
-        </el-form-item>
-        <el-form-item v-if="!isEdit" label="密码" prop="passWord">
-          <el-input
-            v-model="formData.passWord"
-            type="password"
-            show-password
-            placeholder="请输入密码"
-          />
-        </el-form-item>
-        <el-form-item label="邮箱" prop="email">
-          <el-input v-model="formData.email" placeholder="请输入邮箱（选填）" />
-        </el-form-item>
-        <el-form-item label="手机号">
-          <el-input v-model="formData.phone" placeholder="请输入手机号（选填）" />
-        </el-form-item>
-        <el-form-item label="状态">
-          <el-switch
-            v-model="formData.isActive"
-            active-text="启用"
-            inactive-text="禁用"
-          />
-        </el-form-item>
-      </el-form>
-      <template #footer>
-        <el-button @click="dialogVisible = false">取消</el-button>
-        <el-button type="primary" @click="handleSubmit" :loading="loading">
-          {{ isEdit ? '保存修改' : '确认新增' }}
-        </el-button>
-      </template>
-    </el-dialog>
+    <UserFormDialog ref="dialogRef" v-model="dialogVisible" @success="handleDialogSuccess" />
   </div>
 </template>
 
 <style scoped>
-.user-management {
-  max-width: 100%;
-  margin: 0 auto;
-}
-
-/* ===== 页面标题 ===== */
-.page-header {
+/* 表格头部操作按钮 */
+.table-actions {
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  margin-bottom: 24px;
-}
-
-.page-title {
-  font-size: 22px;
-  font-weight: 700;
-  color: var(--text-color);
-  margin: 0;
-}
-
-.page-desc {
-  font-size: 13px;
-  color: var(--text-color-tertiary);
-  margin: 4px 0 0 0;
-}
-
-/* ===== 搜索栏 ===== */
-.search-card {
-  margin-bottom: 20px;
-  border-radius: var(--radius-md);
-  border: 1px solid var(--border-color);
-  background: var(--bg-color-container);
-}
-
-.search-form {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 4px;
-}
-
-/* ===== 表格卡片 ===== */
-.table-card {
-  border-radius: var(--radius-md);
-  border: 1px solid var(--border-color);
-  background: var(--bg-color-container);
-}
-
-.table-card :deep(.el-card__header) {
-  padding: 14px 20px;
-  border-bottom: 1px solid var(--border-color-light);
-}
-
-.table-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-}
-
-.table-title {
-  font-size: 15px;
-  font-weight: 600;
-  color: var(--text-color);
+  gap: 8px;
 }
 
 /* 用户头像+名称 */
@@ -465,38 +280,5 @@ onMounted(() => {
 
 .action-btn.danger:hover {
   color: var(--danger);
-}
-
-/* 分页 */
-.pagination-wrap {
-  display: flex;
-  justify-content: flex-end;
-  padding: 20px 0 4px;
-}
-
-/* ===== 弹窗 ===== */
-.user-dialog :deep(.el-dialog__header) {
-  padding: 20px 24px 16px;
-  margin: 0;
-  border-bottom: 1px solid var(--border-color-light);
-}
-
-.user-dialog :deep(.el-dialog__title) {
-  font-size: 17px;
-  font-weight: 600;
-  color: var(--text-color);
-}
-
-.user-dialog :deep(.el-dialog__body) {
-  padding: 24px;
-}
-
-.user-dialog :deep(.el-dialog__footer) {
-  padding: 12px 24px 20px;
-  border-top: 1px solid var(--border-color-light);
-}
-
-.dialog-form :deep(.el-form-item:last-child) {
-  margin-bottom: 0;
 }
 </style>

@@ -1,5 +1,6 @@
 import http, { httpWithBody } from "./index";
-import type { ApiResponse, UserInfo, CreateUserParams, UpdateUserParams, UserListParams, ChangePasswordParams,  } from "@/types";
+import type { ApiResponse, UserInfo, CreateUserParams, UpdateUserParams, UserListParams, ChangePasswordParams } from "@/types";
+import { tokenManager } from "@/utils";
 
 /**
  * 获取用户列表（分页）
@@ -35,4 +36,22 @@ export function deleteUserApi(id: number): Promise<void> {
  */
 export function changePasswordApi(params: ChangePasswordParams): Promise<void> {
   return http.post("/user/change-password", params);
+}
+
+/**
+ * 导出用户列表（Excel .xlsx），返回 Blob 下载
+ */
+export function exportUserApi(params: Partial<UserListParams>): Promise<Blob> {
+  const token = tokenManager.get()
+  return fetch(`${import.meta.env.VITE_API_BASE_URL}/user/export`, {
+    method: 'POST',
+    headers: {
+      Authorization: `Bearer ${token}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify(params),
+  }).then((res) => {
+    if (!res.ok) throw new Error('导出失败')
+    return res.blob()
+  })
 }

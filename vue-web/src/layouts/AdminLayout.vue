@@ -364,7 +364,7 @@ function handleDropdownCommand(command: string) {
 /* ===== 内容区域 ===== */
 .content {
   flex: 1;
-  padding: 24px;
+  padding: 10px;
   overflow-y: auto;
   background: var(--bg-color);
 }

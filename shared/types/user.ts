@@ -14,7 +14,7 @@ export interface UserInfo extends TableParams {
 /** 创建用户参数 */
 export interface CreateUserParams {
   userName: string
-  passWord: string
+  passWord?: string
   email?: string
   phone?: string
   isActive?: boolean
@@ -31,6 +31,8 @@ export interface UserListParams {
   pageSize?: number
   userName?: string
   isActive?: boolean
+  createTimeStart?: string
+  createTimeEnd?: string
 }
 
 /** 修改密码参数 */
