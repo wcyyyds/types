@@ -114,9 +114,7 @@ export class UserController {
     @Res() res: Response,
     @Body() body: UserListParams,
   ) {
-    console.log('[export] body:', JSON.stringify(body));
     const data = await this.userService.findAllForExport(body);
-    console.log('[export] data.length:', data.length);
 
     // 创建工作簿
     const workbook = new ExcelJS.Workbook();

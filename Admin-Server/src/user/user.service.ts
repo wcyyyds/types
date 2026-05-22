@@ -5,7 +5,7 @@ import {
   BadRequestException,
 } from "@nestjs/common";
 import { InjectRepository } from "@nestjs/typeorm";
-import { Repository, Like, Between } from "typeorm";
+import { Repository, Like, Between, IsNull } from "typeorm";
 import { User } from "./entities/user.entity";
 import * as bcrypt from "bcrypt";
 import type {
@@ -88,7 +88,7 @@ export class UserService {
   ): Promise<ApiResponsePage<UserInfo[]>> {
     const { page = 1, pageSize = 20, userName, isActive, createTimeStart, createTimeEnd } = params;
 
-    const where: any = {};
+    const where: any = { deleteTime: IsNull() };
     if (userName) where.userName = Like(`%${userName}%`);
     if (isActive !== undefined) where.isActive = isActive;
     if (createTimeStart && createTimeEnd) {
@@ -122,7 +122,7 @@ export class UserService {
   ): Promise<any[]> {
     const { page, pageSize, userName, isActive, createTimeStart, createTimeEnd } = params;
 
-    const where: any = {};
+    const where: any = { deleteTime: IsNull() };
     if (userName) where.userName = Like(`%${userName}%`);
     if (isActive !== undefined) where.isActive = isActive;
     if (createTimeStart && createTimeEnd) {
