@@ -1,6 +1,5 @@
 import http, { httpWithBody } from "./index";
 import type { ApiResponse, RoleInfo, CreateRoleParams, UpdateRoleParams, RoleListParams } from "@/types";
-import { tokenManager } from "@/utils";
 
 /**
  * 获取角色列表（分页）
@@ -31,19 +30,29 @@ export function deleteRoleApi(id: number): Promise<void> {
 }
 
 /**
- * 导出角色列表（Excel .xlsx），返回 Blob 下载
+ * 获取用户已分配的角色 ID 列表
  */
-export function exportRoleApi(params: Partial<RoleListParams>): Promise<Blob> {
-  const token = tokenManager.get()
-  return fetch(`${import.meta.env.VITE_API_BASE_URL}/role/export`, {
-    method: 'POST',
-    headers: {
-      Authorization: `Bearer ${token}`,
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify(params),
-  }).then((res) => {
-    if (!res.ok) throw new Error('导出失败')
-    return res.blob()
-  })
+export function getUserRoleIdsApi(userId: number): Promise<number[]> {
+  return http.get('/role/user-roles', { params: { userId } })
+}
+
+/**
+ * 分配用户角色
+ */
+export function assignUserRolesApi(userId: number, roleIds: number[]): Promise<void> {
+  return http.post('/role/user-roles', { userId, roleIds })
+}
+
+/**
+ * 获取角色已分配的菜单 ID 列表
+ */
+export function getRoleMenuIdsApi(roleId: number): Promise<number[]> {
+  return http.get('/role/role-menus', { params: { roleId } })
+}
+
+/**
+ * 分配角色菜单
+ */
+export function assignRoleMenusApi(roleId: number, menuIds: number[]): Promise<void> {
+  return http.post('/role/role-menus', { roleId, menuIds })
 }

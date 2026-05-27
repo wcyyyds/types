@@ -7,8 +7,15 @@ export interface UserInfo extends TableParams {
   passWord?: string;
   email: string;
   phone: string;
+  avatar?: string;
   isActive: boolean;
   accessToken?: string;
+  /** 用户拥有的角色编码列表 */
+  roles?: string[];
+  /** 用户拥有的权限标识列表 */
+  perms?: string[];
+  /** 用户拥有的菜单树 */
+  menus?: any[];
 }
 
 /** 创建用户参数 */
@@ -23,6 +30,7 @@ export interface CreateUserParams {
 /** 更新用户参数 */
 export interface UpdateUserParams extends CreateUserParams {
   id: number
+  avatar?: string
 }
 
 /** 用户列表查询参数 */

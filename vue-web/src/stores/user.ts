@@ -1,8 +1,9 @@
 import { ref } from "vue";
 import { defineStore } from "pinia";
 import type { UserInfo, LoginParams, } from "@/types";
-import { tokenManager, storage } from "@/utils";
+import { tokenManager, storage, getAvatarUrl } from "@/utils";
 import { loginApi, logoutApi, forceLogoutApi } from "@/api/login";
+import { getUserProfileApi } from "@/api/user";
 
 const USER_INFO_KEY = "user_info";
 
@@ -24,7 +25,11 @@ export const useUserStore = defineStore("user", () => {
       userName: result.userName,
       email: result.email,
       phone: result.phone,
+      avatar: getAvatarUrl(result.avatar),
       isActive: result.isActive,
+      roles: result.roles || [],
+      perms: result.perms || [],
+      menus: result.menus || [],
     };
 
     token.value = newToken as string;
@@ -90,6 +95,21 @@ export const useUserStore = defineStore("user", () => {
     }
   }
 
+  /** 从后端重新获取当前用户信息（上传头像后调用） */
+  async function fetchUserProfile() {
+    try {
+      const profile = await getUserProfileApi()
+      if (userInfo.value) {
+        userInfo.value.avatar = getAvatarUrl(profile.avatar)
+        userInfo.value.email = profile.email
+        userInfo.value.phone = profile.phone
+        storage.set(USER_INFO_KEY, userInfo.value)
+      }
+    } catch {
+      // 静默失败
+    }
+  }
+
   return {
     userInfo,
     token,
@@ -98,5 +118,6 @@ export const useUserStore = defineStore("user", () => {
     logout,
     forceLogout,
     restoreUser,
+    fetchUserProfile,
   };
 });

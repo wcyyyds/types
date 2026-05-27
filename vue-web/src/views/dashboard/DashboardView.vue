@@ -32,7 +32,7 @@ const recentActivities = ref([
     <!-- 欢迎语 -->
     <div class="welcome-card">
       <div class="welcome-text">
-        <h2>欢迎回来，{{ userStore.userInfo?.nickname || '用户' }}！</h2>
+        <h2>欢迎回来，{{ userStore.userInfo?.userName || '用户' }}！</h2>
         <p>这是您的管理仪表盘，您可以在这里查看系统概况。</p>
       </div>
       <div class="welcome-emoji">👋</div>

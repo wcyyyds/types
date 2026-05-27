@@ -1,11 +1,13 @@
 <script setup lang="ts">
-import { ref, onMounted, reactive } from 'vue'
+import { ref, computed, onMounted, reactive } from 'vue'
 import AppPagination, { type PageEmitPropsTypes } from '@/components/AppPagination.vue'
 import RoleFormDialog from './RoleFormDialog.vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { Plus, Edit, Delete, Search, Refresh, Download } from '@element-plus/icons-vue'
 import type { RoleInfo, RoleListParams } from '@/types'
-import { getRoleListApi, deleteRoleApi, exportRoleApi } from '@/api/role'
+import { getRoleListApi, deleteRoleApi } from '@/api/role'
+import { downloadExport } from '@/utils'
+import { useUserStore } from '@/stores/user'
 
 onMounted(() => {
   fetchList()
@@ -14,6 +16,12 @@ onMounted(() => {
 const loading = ref(false)
 const list = ref<RoleInfo[]>([])
 const total = ref(0)
+
+/** 是否拥有角色管理操作权限（编辑或删除） */
+const hasRoleActions = computed(() => {
+  const perms = useUserStore().userInfo?.perms || []
+  return perms.includes('role:edit') || perms.includes('role:delete')
+})
 
 const queryParams: RoleListParams | any = reactive({
   page: 1,
@@ -76,13 +84,7 @@ function handleDialogSuccess() {
 }
 
 async function handleExport() {
-  const blob = await exportRoleApi(queryParams)
-  const url = URL.createObjectURL(blob)
-  const a = document.createElement('a')
-  a.href = url
-  a.download = `角色列表_${new Date().toISOString().slice(0, 10)}.xlsx`
-  a.click()
-  URL.revokeObjectURL(url)
+  await downloadExport('/role/export', '角色列表', queryParams)
 }
 
 async function handleDelete(row: RoleInfo) {
@@ -140,8 +142,8 @@ async function handleDelete(row: RoleInfo) {
         <div class="table-header">
           <span class="table-title">角色列表</span>
           <div class="table-actions">
-            <el-button :icon="Download" @click="handleExport">导出</el-button>
-            <el-button type="primary" :icon="Plus" @click="openCreateDialog">新增角色</el-button>
+            <el-button :icon="Download" @click="handleExport" v-permission="'role:export'">导出</el-button>
+            <el-button type="primary" :icon="Plus" @click="openCreateDialog" v-permission="'role:add'">新增角色</el-button>
           </div>
         </div>
       </template>
@@ -179,11 +181,11 @@ async function handleDelete(row: RoleInfo) {
           </template>
         </el-table-column>
         <el-table-column prop="lastModified" label="最后修改时间" width="170" align="center" />
-        <el-table-column label="操作" width="150" align="center" fixed="right">
+        <el-table-column label="操作" width="150" align="center" fixed="right" v-if="hasRoleActions">
           <template #default="{ row }">
-            <el-button type="primary" link size="small" :icon="Edit" @click="openEditDialog(row)">编辑</el-button>
+            <el-button type="primary" link size="small" :icon="Edit" @click="openEditDialog(row)" v-permission="'role:edit'">编辑</el-button>
             <el-divider direction="vertical" />
-            <el-button type="danger" link size="small" :icon="Delete" @click="handleDelete(row)">删除</el-button>
+            <el-button type="danger" link size="small" :icon="Delete" @click="handleDelete(row)" v-permission="'role:delete'">删除</el-button>
           </template>
         </el-table-column>
       </el-table>

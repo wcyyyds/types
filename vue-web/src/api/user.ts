@@ -1,6 +1,5 @@
 import http, { httpWithBody } from "./index";
 import type { ApiResponse, UserInfo, CreateUserParams, UpdateUserParams, UserListParams, ChangePasswordParams } from "@/types";
-import { tokenManager } from "@/utils";
 
 /**
  * 获取用户列表（分页）
@@ -32,26 +31,30 @@ export function deleteUserApi(id: number): Promise<void> {
 }
 
 /**
+ * 上传头像
+ * @param file 图片文件（jpg/png/gif/webp，最大 2MB）
+ * @returns 头像 URL
+ */
+export function uploadAvatarApi(file: File): Promise<string> {
+  const formData = new FormData()
+  formData.append('file', file)
+  return http.post('/user/upload-avatar', formData, {
+    headers: { 'Content-Type': 'multipart/form-data' },
+  })
+}
+
+/**
+ * 获取当前登录用户信息
+ */
+export function getUserProfileApi(): Promise<UserInfo> {
+  return http.get('/user/profile')
+}
+
+/**
  * 修改当前用户密码
  */
 export function changePasswordApi(params: ChangePasswordParams): Promise<void> {
   return http.post("/user/change-password", params);
 }
 
-/**
- * 导出用户列表（Excel .xlsx），返回 Blob 下载
- */
-export function exportUserApi(params: Partial<UserListParams>): Promise<Blob> {
-  const token = tokenManager.get()
-  return fetch(`${import.meta.env.VITE_API_BASE_URL}/user/export`, {
-    method: 'POST',
-    headers: {
-      Authorization: `Bearer ${token}`,
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify(params),
-  }).then((res) => {
-    if (!res.ok) throw new Error('导出失败')
-    return res.blob()
-  })
-}
+

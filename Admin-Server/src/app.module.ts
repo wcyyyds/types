@@ -1,10 +1,11 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { TypeOrmModule } from '@nestjs/typeorm';
-import { RedisModule } from './redis/redis.module';
-import { AuthModule } from './auth/auth.module';
-import { UserModule } from './user/user.module';
-import { RoleModule } from './role/role.module';
+import { RedisModule } from './modules/redis/redis.module';
+import { AuthModule } from './modules/auth/auth.module';
+import { UserModule } from './modules/user/user.module';
+import { RoleModule } from './modules/role/role.module';
+import { MenuModule } from './modules/menu/menu.module';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
 
@@ -20,7 +21,7 @@ import { AppService } from './app.service';
     TypeOrmModule.forRoot({
       type: 'mysql',
       host: process.env.DB_HOST || 'localhost',
-      port: parseInt(process.env.DB_PORT) || 3306,
+      port: parseInt(process.env.DB_PORT ?? '3306') || 3306,
       username: process.env.DB_USERNAME || 'root',
       password: process.env.DB_PASSWORD || 'password',
       database: process.env.DB_DATABASE || 'nestjs_db',
@@ -35,6 +36,7 @@ import { AppService } from './app.service';
     // 业务模块
     UserModule,
     RoleModule,
+    MenuModule,
     AuthModule,
   ],
   controllers: [AppController],

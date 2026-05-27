@@ -1,8 +1,9 @@
 <script setup lang="ts">
-import { ref, reactive } from 'vue'
+import { ref, reactive, onMounted } from 'vue'
 import { ElMessage } from 'element-plus'
-import type { UserInfo, CreateUserParams, UpdateUserParams } from '@/types'
+import type { UserInfo, CreateUserParams, UpdateUserParams, RoleInfo } from '@/types'
 import { createUserApi, updateUserApi } from '@/api/user'
+import { getRoleListApi, getUserRoleIdsApi, assignUserRolesApi } from '@/api/role'
 
 // ============================================================
 // Props & Emits
@@ -25,6 +26,9 @@ const emit = defineEmits<{
 
 const isEdit = ref(false)
 const loading = ref(false)
+const roleLoading = ref(false)
+const allRoles = ref<RoleInfo[]>([])
+const selectedRoleIds = ref<number[]>([])
 
 const formRef = ref()
 const formData = reactive<{
@@ -79,6 +83,26 @@ const dialogTitle = ref('')
 // 方法
 // ============================================================
 
+/** 加载所有角色列表 */
+async function loadRoles() {
+  try {
+    const res = await getRoleListApi({ page: 1, pageSize: 999 })
+    allRoles.value = res.data || []
+  } catch { }
+}
+
+/** 加载用户已分配的角色 */
+async function loadUserRoles(userId: number) {
+  roleLoading.value = true
+  try {
+    selectedRoleIds.value = await getUserRoleIdsApi(userId)
+  } catch {
+    selectedRoleIds.value = []
+  } finally {
+    roleLoading.value = false
+  }
+}
+
 function openForCreate() {
   isEdit.value = false
   dialogTitle.value = '新增用户'
@@ -88,6 +112,8 @@ function openForCreate() {
   formData.email = ''
   formData.phone = ''
   formData.isActive = true
+  selectedRoleIds.value = []
+  loadRoles()
 }
 
 function openForEdit(row: UserInfo) {
@@ -99,6 +125,8 @@ function openForEdit(row: UserInfo) {
   formData.email = row.email || ''
   formData.phone = row.phone || ''
   formData.isActive = row.isActive
+  loadRoles()
+  if (row.id) loadUserRoles(row.id)
 }
 
 async function handleSubmit() {
@@ -115,7 +143,11 @@ async function handleSubmit() {
         phone: formData.phone,
         isActive: formData.isActive,
       }
-      await updateUserApi(params)
+      const saved = await updateUserApi(params)
+      // 分配角色
+      if (formData.id) {
+        await assignUserRolesApi(formData.id, selectedRoleIds.value)
+      }
       ElMessage.success('更新成功')
     } else {
       const params: CreateUserParams = {
@@ -125,7 +157,11 @@ async function handleSubmit() {
         phone: formData.phone || undefined,
         isActive: formData.isActive,
       }
-      await createUserApi(params)
+      const saved = await createUserApi(params)
+      // 新增用户后分配角色
+      if (saved?.id) {
+        await assignUserRolesApi(saved.id, selectedRoleIds.value)
+      }
       ElMessage.success('新增成功')
     }
     emit('success')
@@ -146,30 +182,64 @@ defineExpose({ openForCreate, openForEdit })
 </script>
 
 <template>
-  <el-dialog
-    :model-value="modelValue"
-    :title="dialogTitle"
-    width="520px"
-    :close-on-click-modal="false"
-    class="user-dialog"
-    @update:model-value="emit('update:modelValue', $event)"
-  >
+  <el-dialog :model-value="modelValue" :title="dialogTitle" width="600px" :close-on-click-modal="false"
+    class="user-dialog" @update:model-value="emit('update:modelValue', $event)">
     <el-form ref="formRef" :model="formData" :rules="formRules" label-width="80px" class="dialog-form">
-      <el-form-item label="用户名" prop="userName">
-        <el-input v-model="formData.userName" placeholder="请输入用户名" autocomplete="off" />
-      </el-form-item>
-      <el-form-item v-if="!isEdit" label="密码" prop="passWord">
-        <el-input v-model="formData.passWord" type="password" show-password placeholder="请输入密码" autocomplete="new-password" />
-      </el-form-item>
-      <el-form-item label="邮箱" prop="email">
-        <el-input v-model="formData.email" placeholder="请输入邮箱（选填）" />
-      </el-form-item>
-      <el-form-item label="手机号" prop="phone">
-        <el-input v-model="formData.phone" placeholder="请输入手机号（选填）" />
-      </el-form-item>
-      <el-form-item label="状态">
-        <el-switch v-model="formData.isActive" active-text="启用" inactive-text="禁用" />
-      </el-form-item>
+      <!-- 基本信息 -->
+      <div class="form-section">
+        <div class="form-section-title">基本信息</div>
+        <div class="form-section-body">
+          <el-row :gutter="16">
+            <el-col :span="12">
+              <el-form-item label="用户名" prop="userName">
+                <el-input v-model="formData.userName"  placeholder="请输入用户名" />
+              </el-form-item>
+            </el-col>
+            <el-col :span="12">
+              <el-form-item v-if="!isEdit" label="密码" prop="passWord">
+                <el-input v-model="formData.passWord" type="password" show-password placeholder="请输入密码" autocomplete="new-password" />
+              </el-form-item>
+              <el-form-item v-else label="密码">
+                <el-input value="········" type="password" readonly disabled />
+              </el-form-item>
+            </el-col>
+          </el-row>
+          <el-row :gutter="16">
+            <el-col :span="12">
+              <el-form-item label="邮箱" prop="email">
+                <el-input v-model="formData.email" placeholder="请输入邮箱（选填）" />
+              </el-form-item>
+            </el-col>
+            <el-col :span="12">
+              <el-form-item label="手机号" prop="phone">
+                <el-input v-model="formData.phone" placeholder="请输入手机号（选填）" />
+              </el-form-item>
+            </el-col>
+          </el-row>
+          <el-row :gutter="16">
+            <el-col :span="12">
+              <el-form-item label="状态">
+                <el-switch v-model="formData.isActive" active-text="启用" inactive-text="禁用" />
+              </el-form-item>
+            </el-col>
+          </el-row>
+        </div>
+      </div>
+
+      <!-- 角色配置 -->
+      <div class="form-section">
+        <div class="form-section-title">角色配置</div>
+        <div class="form-section-body">
+          <el-form-item label="角色分配">
+            <el-select v-model="selectedRoleIds" filterable multiple placeholder="请选择角色" :loading="roleLoading" style="width: 100%">
+              <el-option v-for="role in allRoles" :key="role.id" :label="role.roleName" :value="role.id" />
+            </el-select>
+            <div class="role-hint" v-if="selectedRoleIds.length">
+              已选择 <strong>{{ selectedRoleIds.length }}</strong> 个角色
+            </div>
+          </el-form-item>
+        </div>
+      </div>
     </el-form>
     <template #footer>
       <el-button @click="handleClose">取消</el-button>
@@ -194,7 +264,7 @@ defineExpose({ openForCreate, openForEdit })
 }
 
 .user-dialog :deep(.el-dialog__body) {
-  padding: 24px;
+  padding: 20px 24px;
 }
 
 .user-dialog :deep(.el-dialog__footer) {
@@ -202,7 +272,57 @@ defineExpose({ openForCreate, openForEdit })
   border-top: 1px solid var(--border-color-light);
 }
 
-.dialog-form :deep(.el-form-item:last-child) {
+/* 表单分区 */
+.form-section {
+  margin-bottom: 20px;
+}
+
+.form-section:last-child {
   margin-bottom: 0;
+}
+
+.form-section-title {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-color-secondary);
+  padding-bottom: 10px;
+  margin-bottom: 14px;
+  border-bottom: 1px dashed var(--border-color-light);
+  letter-spacing: 0.5px;
+}
+
+.form-section-body :deep(.el-form-item) {
+  margin-bottom: 18px;
+}
+
+.form-section-body :deep(.el-form-item:last-child) {
+  margin-bottom: 0;
+}
+
+.form-section-body :deep(.el-row) {
+  margin-bottom: 0 !important;
+}
+
+.form-section-body > :deep(.el-row) {
+  margin-bottom: 18px !important;
+}
+
+.form-section-body > :deep(.el-row:last-child) {
+  margin-bottom: 0 !important;
+}
+
+.form-section-body :deep(.el-col) .el-form-item {
+  margin-bottom: 0;
+}
+
+/* 角色提示 */
+.role-hint {
+  font-size: 12px;
+  color: var(--primary);
+  margin-top: 6px;
+}
+
+.role-hint strong {
+  font-weight: 700;
 }
 </style>

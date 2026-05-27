@@ -1,11 +1,13 @@
 <script setup lang="ts">
-import { ref, onMounted, reactive } from 'vue'
+import { ref, computed, onMounted, reactive } from 'vue'
 import AppPagination, { type PageEmitPropsTypes } from '@/components/AppPagination.vue'
 import UserFormDialog from './UserFormDialog.vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { Plus, Edit, Delete, Search, Refresh, Download } from '@element-plus/icons-vue'
 import type { UserInfo, UserListParams } from '@/types'
-import { getUserListApi, deleteUserApi, exportUserApi } from '@/api/user'
+import { getUserListApi, deleteUserApi } from '@/api/user'
+import { downloadExport } from '@/utils'
+import { useUserStore } from '@/stores/user'
 
 onMounted(() => {
   fetchList()
@@ -14,6 +16,12 @@ onMounted(() => {
 const loading = ref(false)
 const list = ref<UserInfo[]>([])
 const total = ref(0)
+
+/** 是否拥有用户管理操作权限（编辑或删除） */
+const hasUserActions = computed(() => {
+  const perms = useUserStore().userInfo?.perms || []
+  return perms.includes('user:edit') || perms.includes('user:delete')
+})
 
 const queryParams: UserListParams | any = reactive({
   page: 1,
@@ -89,13 +97,7 @@ function openEditDialog(row: UserInfo) {
 }
 
 async function handleExport() {
-  const blob = await exportUserApi(queryParams)
-  const url = URL.createObjectURL(blob)
-  const a = document.createElement('a')
-  a.href = url
-  a.download = `用户列表_${new Date().toISOString().slice(0, 10)}.xlsx`
-  a.click()
-  URL.revokeObjectURL(url)
+  await downloadExport('/user/export', '用户列表', queryParams)
 }
 </script>
 
@@ -147,8 +149,8 @@ async function handleExport() {
         <div class="table-header">
           <span class="table-title">用户列表</span>
           <div class="table-actions">
-            <el-button :icon="Download" @click="handleExport">导出</el-button>
-            <el-button type="primary" :icon="Plus" @click="openCreateDialog">新增用户</el-button>
+            <el-button :icon="Download" @click="handleExport" v-permission="'user:export'">导出</el-button>
+            <el-button type="primary" :icon="Plus" @click="openCreateDialog" v-permission="'user:add'">新增用户</el-button>
           </div>
         </div>
       </template>
@@ -199,14 +201,14 @@ async function handleExport() {
           </template>
         </el-table-column>
         <el-table-column prop="lastModified" label="最后修改时间" width="170" align="center" />
-        <el-table-column label="操作" width="200" align="center" fixed="right">
+        <el-table-column label="操作" width="200" align="center" fixed="right" v-if="hasUserActions">
           <template #default="{ row }">
-            <el-button type="primary" link size="small" :icon="Edit" @click="openEditDialog(row)" class="action-btn">
+            <el-button type="primary" link size="small" :icon="Edit" @click="openEditDialog(row)" class="action-btn" v-permission="'user:edit'">
               编辑
             </el-button>
             <el-divider direction="vertical" />
             <el-button type="danger" link size="small" :icon="Delete" @click="handleDelete(row)"
-              class="action-btn danger">
+              class="action-btn danger" v-permission="'user:delete'">
               删除
             </el-button>
           </template>

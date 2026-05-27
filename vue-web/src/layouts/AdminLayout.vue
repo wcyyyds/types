@@ -3,6 +3,8 @@ import { ref, reactive } from 'vue'
 import { useRouter } from 'vue-router'
 import { useUserStore } from '@/stores/user'
 import ThemeToggle from '@/components/ThemeToggle.vue'
+import MenuTree from '@/components/MenuTree'
+import AvatarCropper from '@/components/AvatarCropper.vue'
 import { ElMessage } from 'element-plus'
 import {
   DataAnalysis,
@@ -11,8 +13,11 @@ import {
   ArrowDown,
   SwitchButton,
   Key,
+  Fold,
+  Expand,
+  Upload,
 } from '@element-plus/icons-vue'
-import { changePasswordApi } from '@/api/user'
+import { changePasswordApi, uploadAvatarApi } from '@/api/user'
 
 const router = useRouter()
 const userStore = useUserStore()
@@ -94,11 +99,31 @@ async function handleLogout() {
 }
 
 function handleDropdownCommand(command: string) {
-  if (command === 'changePwd') {
+  if (command === 'uploadAvatar') {
+    openAvatarUpload()
+  } else if (command === 'changePwd') {
     openPwdDialog()
   } else if (command === 'logout') {
     handleLogout()
   }
+}
+
+/** 图标映射 */
+const iconMap: Record<string, any> = {
+  DataAnalysis,
+  User,
+  Avatar,
+}
+
+// ===== 头像上传 =====
+const avatarDialogVisible = ref(false)
+
+function openAvatarUpload() {
+  avatarDialogVisible.value = true
+}
+
+function handleAvatarSuccess(_url: string) {
+  // store 已自动更新
 }
 </script>
 
@@ -106,32 +131,42 @@ function handleDropdownCommand(command: string) {
   <div class="admin-layout" :class="{ collapsed: isCollapsed }">
     <!-- 侧边栏 -->
     <aside class="sidebar">
-      <div class="logo">
-        <span class="logo-icon">⚡</span>
-        <span v-show="!isCollapsed" class="logo-text">Admin</span>
+      <!-- Logo 区域 -->
+      <div class="logo" @click="toggleSidebar">
+        <div class="logo-icon-wrapper">
+          <span class="logo-icon">⚡</span>
+        </div>
+        <transition name="fade">
+          <span v-show="!isCollapsed" class="logo-text">OK_攻城狮</span>
+        </transition>
       </div>
 
-      <el-menu
-        :default-active="router.currentRoute.value.path"
-        :collapse="isCollapsed"
-        background-color="transparent"
-        text-color="var(--sidebar-text)"
-        active-text-color="var(--sidebar-active-text)"
-        router
-      >
-        <el-menu-item index="/dashboard">
-          <el-icon><DataAnalysis /></el-icon>
-          <template #title>仪表盘</template>
-        </el-menu-item>
-        <el-menu-item index="/user">
-          <el-icon><User /></el-icon>
-          <template #title>人员管理</template>
-        </el-menu-item>
-        <el-menu-item index="/role">
-          <el-icon><Avatar /></el-icon>
-          <template #title>角色管理</template>
-        </el-menu-item>
-      </el-menu>
+      <!-- 菜单区域 -->
+      <div class="menu-wrapper">
+        <el-menu
+          :default-active="router.currentRoute.value.path"
+          :collapse="isCollapsed"
+          :collapse-transition="false"
+          background-color="transparent"
+          text-color="var(--sidebar-text)"
+          active-text-color="var(--sidebar-active-text)"
+          router
+        >
+          <!-- 动态菜单（递归渲染，支持无限层级） -->
+          <MenuTree :menus="userStore.userInfo?.menus || []" />
+        </el-menu>
+      </div>
+
+      <!-- 侧边栏底部折叠按钮 -->
+      <div class="sidebar-footer" @click="toggleSidebar">
+        <el-icon :class="{ 'rotate-180': isCollapsed }">
+          <Fold v-if="!isCollapsed" />
+          <Expand v-else />
+        </el-icon>
+        <transition name="fade">
+          <span v-show="!isCollapsed" class="footer-text">收起侧边栏</span>
+        </transition>
+      </div>
     </aside>
 
     <!-- 主区域 -->
@@ -151,21 +186,25 @@ function handleDropdownCommand(command: string) {
 
           <el-dropdown trigger="click" @command="handleDropdownCommand">
             <span class="user-info">
-              <el-avatar :size="32" icon="UserFilled" />
+              <el-avatar :size="32" :src="userStore.userInfo?.avatar">
+                <el-icon><User /></el-icon>
+              </el-avatar>
               <span class="username">{{ userStore.userInfo?.userName || '用户' }}</span>
               <el-icon><ArrowDown /></el-icon>
             </span>
             <template #dropdown>
-              <el-dropdown-menu>
-                <el-dropdown-item command="changePwd">
-                  <el-icon><Key /></el-icon>
-                  修改密码
-                </el-dropdown-item>
-                <el-dropdown-item command="logout" divided>
-                  <el-icon><SwitchButton /></el-icon>
-                  退出登录
-                </el-dropdown-item>
-              </el-dropdown-menu>
+              <el-dropdown-item command="uploadAvatar">
+                <el-icon><Upload /></el-icon>
+                上传头像
+              </el-dropdown-item>
+              <el-dropdown-item command="changePwd">
+                <el-icon><Key /></el-icon>
+                修改密码
+              </el-dropdown-item>
+              <el-dropdown-item command="logout" divided>
+                <el-icon><SwitchButton /></el-icon>
+                退出登录
+              </el-dropdown-item>
             </template>
           </el-dropdown>
         </div>
@@ -176,6 +215,9 @@ function handleDropdownCommand(command: string) {
         <router-view />
       </main>
     </div>
+
+    <!-- 头像上传弹窗 -->
+    <AvatarCropper v-model="avatarDialogVisible" @success="handleAvatarSuccess" />
 
     <!-- 修改密码弹窗 -->
     <el-dialog
@@ -226,6 +268,7 @@ function handleDropdownCommand(command: string) {
 </template>
 
 <style scoped>
+/* ===== 整体布局 ===== */
 .admin-layout {
   display: flex;
   height: 100vh;
@@ -244,54 +287,87 @@ function handleDropdownCommand(command: string) {
   flex-shrink: 0;
   overflow: hidden;
   z-index: 10;
+  position: relative;
 }
 
 .collapsed .sidebar {
   width: var(--sidebar-collapsed-width);
 }
 
+/* Logo 区域 */
 .logo {
   height: var(--header-height);
   display: flex;
   align-items: center;
-  justify-content: center;
-  gap: 10px;
-  font-size: 20px;
-  font-weight: 700;
-  color: var(--logo-text);
+  gap: 12px;
+  padding: 0 20px;
   white-space: nowrap;
   overflow: hidden;
   border-bottom: 1px solid var(--border-color);
   flex-shrink: 0;
+  cursor: pointer;
+  user-select: none;
+  transition: padding var(--transition-base);
+}
+
+.collapsed .logo {
+  padding: 0 0;
+  justify-content: center;
+}
+
+.logo-icon-wrapper {
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(135deg, var(--primary), var(--primary-dark));
+  border-radius: var(--radius-sm);
+  flex-shrink: 0;
 }
 
 .logo-icon {
-  font-size: 26px;
-  flex-shrink: 0;
+  font-size: 18px;
   line-height: 1;
+  filter: brightness(10);
 }
 
 .logo-text {
-  transition: opacity var(--transition-base), width var(--transition-base);
-  overflow: hidden;
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--logo-text);
+  letter-spacing: 0.5px;
 }
 
-.collapsed .logo-text {
-  opacity: 0;
-  width: 0;
+/* 菜单区域 — 可滚动 */
+.menu-wrapper {
+  flex: 1;
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding: 8px 0;
+}
+
+.menu-wrapper::-webkit-scrollbar {
+  width: 3px;
+}
+
+.menu-wrapper::-webkit-scrollbar-thumb {
+  background: var(--border-color);
+  border-radius: 3px;
 }
 
 .sidebar .el-menu {
   border-right: none;
-  flex: 1;
-  padding: 8px 0;
+  background: transparent;
 }
 
-/* Element Plus 菜单暗色适配 */
+/* el-menu-item 样式 */
 :deep(.el-menu-item) {
-  margin: 2px 8px;
+  margin: 2px 10px;
   border-radius: var(--radius-md);
   transition: all var(--transition-fast);
+  height: 42px;
+  line-height: 42px;
 }
 
 :deep(.el-menu-item:hover) {
@@ -302,17 +378,133 @@ function handleDropdownCommand(command: string) {
   background: var(--sidebar-active-bg) !important;
   color: var(--sidebar-active-text) !important;
   font-weight: 600;
+  position: relative;
+}
+
+:deep(.el-menu-item.is-active::before) {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 3px;
+  height: 20px;
+  background: var(--primary);
+  border-radius: 0 3px 3px 0;
 }
 
 :deep(.el-menu-item .el-icon) {
   color: inherit;
+  font-size: 18px;
 }
 
-/* 折叠时菜单适配 */
-.collapsed :deep(.el-menu-item) {
-  margin: 2px 12px;
-  border-radius: var(--radius-sm);
+/* el-sub-menu 样式 */
+:deep(.el-sub-menu__title) {
+  margin: 2px 10px;
+  border-radius: var(--radius-md);
+  height: 42px;
+  line-height: 42px;
+  transition: all var(--transition-fast);
+}
+
+:deep(.el-sub-menu__title:hover) {
+  background: var(--sidebar-hover-bg) !important;
+}
+
+:deep(.el-sub-menu .el-menu) {
+  background: transparent;
+}
+
+:deep(.el-sub-menu .el-menu .el-menu-item) {
+  padding-left: 52px !important;
+  margin: 1px 10px;
+  height: 38px;
+  line-height: 38px;
+  font-size: 13px;
+}
+
+/* 折叠状态适配 — 所有菜单项图标居中 */
+.collapsed .sidebar :deep(.el-menu-item),
+.collapsed .sidebar :deep(.el-sub-menu__title) {
+  padding: 0 !important;
+  display: flex;
+  align-items: center;
   justify-content: center;
+  width: 42px;
+  margin: 2px auto;
+  border-radius: var(--radius-sm);
+}
+
+.collapsed .sidebar :deep(.el-menu-item) .el-icon,
+.collapsed .sidebar :deep(.el-sub-menu__title) .el-icon {
+  margin: 0 !important;
+  font-size: 20px;
+}
+
+.collapsed .sidebar :deep(.el-menu-item) span,
+.collapsed .sidebar :deep(.el-sub-menu__title) span,
+.collapsed .sidebar :deep(.el-sub-menu__title .el-icon) ~ span {
+  display: none;
+}
+
+.collapsed .sidebar :deep(.el-menu-item.is-active::before) {
+  display: none;
+}
+
+.collapsed .sidebar :deep(.el-sub-menu .el-menu) {
+  display: none;
+}
+
+/* 侧边栏底部折叠按钮 */
+.sidebar-footer {
+  height: 48px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 0 20px;
+  border-top: 1px solid var(--border-color);
+  cursor: pointer;
+  flex-shrink: 0;
+  color: var(--text-color-secondary);
+  font-size: 14px;
+  transition: all var(--transition-fast);
+  white-space: nowrap;
+  overflow: hidden;
+  user-select: none;
+}
+
+.sidebar-footer:hover {
+  color: var(--primary);
+  background: var(--primary-bg);
+}
+
+.collapsed .sidebar-footer {
+  padding: 0;
+  justify-content: center;
+}
+
+.sidebar-footer .el-icon {
+  font-size: 16px;
+  flex-shrink: 0;
+  transition: transform var(--transition-base);
+}
+
+.sidebar-footer .rotate-180 {
+  transform: rotate(180deg);
+}
+
+.footer-text {
+  font-size: 13px;
+}
+
+/* 文字渐隐动画 */
+.fade-enter-active,
+.fade-leave-active {
+  transition: opacity var(--transition-fast);
+}
+.fade-enter-from,
+.fade-leave-to {
+  opacity: 0;
 }
 
 /* ===== 主区域 ===== */
@@ -369,7 +561,7 @@ function handleDropdownCommand(command: string) {
 /* ===== 内容区域 ===== */
 .content {
   flex: 1;
-  padding: 24px;
+  padding: 10px;
   overflow-y: auto;
   background: var(--bg-color);
 }

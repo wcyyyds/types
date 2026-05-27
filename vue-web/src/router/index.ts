@@ -37,6 +37,12 @@ const router = createRouter({
           component: () => import('@/views/role/RoleManagement.vue'),
           meta: { title: '角色管理', requiresAuth: true },
         },
+        {
+          path: 'menu',
+          name: 'menu',
+          component: () => import('@/views/menu/MenuManagement.vue'),
+          meta: { title: '菜单管理', requiresAuth: true },
+        },
       ],
     },
     {

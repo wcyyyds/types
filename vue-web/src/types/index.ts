@@ -14,5 +14,7 @@ export type {
   UpdateRoleParams,
   RoleListParams,
 } from '@shared/types/role'
+export type { MenuInfo, CreateMenuParams, UpdateMenuParams, MenuType, MenuTypeLabel } from '@shared/types/menu'
+export { MenuTypeConst } from '@shared/types/menu'
 /** 主题模式 */
 export type ThemeMode = 'light' | 'dark'

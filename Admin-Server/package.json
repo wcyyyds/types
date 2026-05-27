@@ -24,14 +24,14 @@
     "init-db": "node scripts/init-database.js"
   },
   "dependencies": {
-    "@nestjs/common": "^11.1.21",
+    "@nestjs/common": "^11.1.24",
     "@nestjs/config": "^4.0.4",
-    "@nestjs/core": "^11.1.21",
+    "@nestjs/core": "^11.1.24",
     "@nestjs/jwt": "^11.0.2",
-    "@nestjs/platform-express": "^11.1.21",
-    "@nestjs/platform-socket.io": "^11.1.21",
+    "@nestjs/platform-express": "^11.1.24",
+    "@nestjs/platform-socket.io": "^11.1.24",
     "@nestjs/typeorm": "^11.0.1",
-    "@nestjs/websockets": "^11.1.21",
+    "@nestjs/websockets": "^11.1.24",
     "bcrypt": "^6.0.0",
     "class-transformer": "^0.5.1",
     "class-validator": "^0.15.1",
@@ -48,7 +48,7 @@
   "devDependencies": {
     "@nestjs/cli": "^11.0.21",
     "@nestjs/schematics": "^11.1.0",
-    "@nestjs/testing": "^11.1.21",
+    "@nestjs/testing": "^11.1.24",
     "@types/bcrypt": "^6.0.0",
     "@types/express": "^5.0.6",
     "@types/jest": "^30.0.0",
@@ -70,7 +70,7 @@
     "ts-loader": "^9.5.7",
     "ts-node": "^10.9.2",
     "tsconfig-paths": "^4.2.0",
-    "typescript": "^5.8.3"
+    "typescript": "^6.0.3"
   },
   "jest": {
     "moduleFileExtensions": [

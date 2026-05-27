@@ -3,6 +3,14 @@ allowBuilds:
   bcrypt: true
   unrs-resolver: true
 
+minimumReleaseAgeExclude:
+  - '@nestjs/common@11.1.24'
+  - '@nestjs/core@11.1.24'
+  - '@nestjs/platform-express@11.1.24'
+  - '@nestjs/platform-socket.io@11.1.24'
+  - '@nestjs/testing@11.1.24'
+  - '@nestjs/websockets@11.1.24'
+
 onlyBuiltDependencies:
   - '@nestjs/core'
   - bcrypt
